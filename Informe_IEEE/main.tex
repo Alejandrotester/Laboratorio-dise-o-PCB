@@ -1,0 +1,295 @@
+\documentclass[journal,10pt]{IEEEtran}
+% Proyecto IEEE listo para cargar como ZIP en Overleaf.
+% Compilador: pdfLaTeX. Idioma: espanol.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{dblfloatfix}
+\usepackage{float}
+\usepackage{balance}
+\graphicspath{{imagenes/}{recortes/}{paneles/}}
+\renewcommand{\figurename}{Fig.}
+\renewcommand{\tablename}{TABLA}
+\setlength{\columnsep}{0.24in}
+\hypersetup{pdftitle={Diseno progresivo de PCB con KiCad: tres ejercicios de laboratorio},pdfauthor={Alejandro Beltran Cardona, Daniel Zuluaga Gonzalez, Jhon Alexander Salazar Rendon}}
+
+\title{Diseño y Cotización de Tres Placas de Circuito Impreso en KiCad: Linterna LED y Sistemas ESP32-S3}
+\author{{Alejandro Beltrán Cardona, Daniel Zuluaga González y Jhon Alexander Salazar Rendón\thanks{Asignatura: Diseño Electrónico CAD; Programa de Ingeniería Electrónica. Octubre de 2026.}}}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Se documenta el diseño progresivo de tres placas de circuito impreso mediante KiCad 10: una linterna LED alimentada por batería, una tarjeta mínima basada en ESP32-S3 y una tarjeta de desarrollo ESP32-S3 con USB-C, convertidor USB--UART CP2102N y circuito de programación automática. Se desarrollaron esquemáticos, se seleccionaron huellas, se delimitaron contornos de fabricación y se trazaron pistas de cobre y planos de tierra, con inspección tridimensional. Las capturas suministradas registran cero infracciones en las comprobaciones eléctricas de los ejercicios primero y tercero, y cero errores de diseño y cero conexiones pendientes en los tres diseños de PCB. En el segundo ejercicio persisten advertencias de biblioteca y de diseño, y en el tercero figuran 33 avisos atribuidos durante la revisión a solapamientos de serigrafía. Se separan las comprobaciones efectuadas de la validación pendiente de impedancia USB, fabricación y pruebas físicas. El trabajo muestra la transición desde un circuito elemental hasta la integración de alimentación, comunicación, protección y radiofrecuencia en una tarjeta de dos capas. Asimismo, se documentan cotizaciones de fabricación de las tres PCB y una cotización PCBA estándar de montaje SMT por una cara para la tercera tarjeta, así como el repositorio previsto para consultar los archivos editables.
+\end{abstract}
+
+\begin{IEEEkeywords}
+KiCad, PCB, ESP32-S3, USB-C, CP2102N, ERC, DRC, cotización PCB, PCBA, JLCPCB.
+\end{IEEEkeywords}
+
+\section{Introducción}
+El diseño de una placa de circuito impreso (\emph{printed circuit board}, PCB) involucra dos representaciones complementarias: el esquemático, que define las relaciones eléctricas, y la distribución física, que determina la ubicación de componentes, las pistas y las capas conductoras. Las herramientas de automatización de diseño electrónico permiten verificar ambas representaciones por medio del \emph{Electrical Rules Check} (ERC) y el \emph{Design Rules Check} (DRC). La aprobación de estas comprobaciones facilita detectar errores, pero no equivale por sí sola a una validación funcional o de manufactura \cite{kicad}.
+
+Esta práctica se estructuró en tres niveles: (i) un sistema LED de baja complejidad; (ii) una placa compacta con microcontrolador ESP32-S3; y (iii) una tarjeta de desarrollo con interfaz USB-C, puente CP2102N, protección ante descargas electrostáticas y control de arranque. La secuencia corresponde a la guía proporcionada para la asignatura \cite{guia}.
+
+\section{Objetivos y metodología}
+\subsection{Objetivo general}
+Diseñar y documentar tres circuitos impresos de complejidad creciente con KiCad, aplicando captura esquemática, asignación de huellas, enrutamiento, delimitación física y verificación ERC/DRC.
+
+\subsection{Objetivos específicos}
+\begin{itemize}
+\item Representar esquemáticamente circuitos de iluminación y sistemas embebidos.
+\item Convertir los esquemáticos en diseños PCB, identificando huellas, capas y límites físicos.
+\item Implementar alimentación regulada, desacoplo, acceso USB, reinicio y conexiones GPIO en plataformas ESP32-S3.
+\item Verificar conectividad mediante ERC y DRC, y revisar los modelos tridimensionales.
+\item Reconocer los requisitos adicionales para manufactura, radiofrecuencia e integridad de señal.
+\end{itemize}
+
+\subsection{Procedimiento de trabajo}
+El flujo de desarrollo se realizó en KiCad 10.0.7. Se inició con la colocación y anotación de símbolos en el editor de esquemáticos y la asignación de las respectivas huellas. Los diseños se transfirieron al editor PCB, donde se distribuyeron componentes, se trazó el perímetro en \texttt{Edge.Cuts} y se efectuó el enrutamiento. En los ejercicios ESP32-S3 se utilizó una arquitectura de dos capas conductoras, \texttt{F.Cu} y \texttt{B.Cu}; además, se introdujeron regiones de cobre asociadas a GND y una zona de exclusión para la antena. Finalmente, se revisaron las ventanas de ERC, DRC y el visor 3D. Las evidencias corresponden a las capturas aportadas por el equipo; no se documentan mediciones físicas ni una placa fabricada.
+
+\section{Ejercicio 1: linterna LED}
+\subsection{Descripción y principio de operación}
+La primera actividad consistió en diseñar una linterna sencilla alimentada mediante una batería de 3~V (BT1). El circuito está conformado por un pulsador normalmente abierto SW1, una resistencia limitadora R1 de 1~k$\Omega$ y un diodo emisor de luz D1. Al presionar SW1 se cierra el circuito y circula corriente a través de la resistencia y del LED. El circuito final se aprecia en la Fig.~\ref{fig:e1esq}.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.70\columnwidth,height=0.32\textheight,keepaspectratio]{ej1_01_esquematico_linterna.png}
+\caption{Esquemático de la linterna LED con batería, resistencia, pulsador e indicador de alimentación. Captura del proyecto.}
+\label{fig:e1esq}
+\end{figure}
+
+La resistencia permite limitar la corriente según
+\begin{equation}
+I_{\rm LED}\approx\frac{V_{\rm BAT}-V_F}{R_1},
+\label{eq:led}
+\end{equation}
+donde $V_F$ es la caída directa del LED. A modo ilustrativo, si $V_F\approx 2$~V, entonces $I_{\rm LED}\approx 1$~mA. Esta estimación no representa una medición del dispositivo construido.
+
+\subsection{Diseño de PCB e inspección 3D}
+Se definió un contorno rectangular alargado con esquinas redondeadas, se distribuyeron el portabatería, el pulsador, la resistencia y el LED y se rutearon las conexiones, utilizando ambas caras donde fue necesario. La Fig.~\ref{fig:e1panel} reúne el trazado y su modelo tridimensional. La captura confirma visualmente la distribución mecánica, pero no aporta una medida numérica del perímetro ni del ancho de todas las pistas.
+
+
+
+
+
+\subsection{Verificación}
+Las capturas del ERC y del DRC (Fig.~\ref{fig:e1panel}) muestran \textbf{cero infracciones}. La ventana DRC presenta, adicionalmente, \textbf{cero elementos sin conectar} y \textbf{cero diferencias con el esquemático}. Se visualizan cuatro pruebas ignoradas en ERC y cinco en DRC; por tanto, el resultado debe interpretarse dentro del conjunto de reglas y pruebas efectivamente habilitado.
+
+
+
+
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.96\textwidth,height=0.37\textheight,keepaspectratio]{ej1_evidencias.png}
+\caption{Evidencias del ejercicio 1: PCB enrutada, modelo tridimensional, ERC sin infracciones y DRC sin infracciones ni conexiones pendientes.}
+\label{fig:e1panel}
+\end{figure*}
+
+\section{Ejercicio 2: tarjeta mínima ESP32-S3}
+\subsection{Arquitectura electrónica}
+El segundo desarrollo incrementó la complejidad mediante un módulo ESP32-S3-WROOM-1 (U1), un regulador AMS1117-3.3 (U2), una entrada USB, un circuito de reinicio y un LED de estado asociado a GPIO15. El subsistema de alimentación integra filtrado de entrada y salida, mientras que las redes EN e IO0 definen condiciones de reinicio y arranque. La Fig.~\ref{fig:e2esq} muestra el conjunto esquemático.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.96\textwidth,height=0.37\textheight,keepaspectratio]{ej2_01_esquematico_esp32_mini.png}
+\caption{Esquemático del ESP32-S3 Mini: alimentación, regulación a 3,3~V, control de arranque, LED y conexión USB.}
+\label{fig:e2esq}
+\end{figure*}
+
+\subsection{Distribución física y exclusión de antena}
+Los componentes se colocaron sobre una PCB de dos capas, ubicando el ESP32-S3 hacia el borde superior y el conector USB en el extremo opuesto. Se definió gráficamente una \emph{keep-out zone} para la antena integrada del módulo y se añadió relleno de tierra. La recomendación de diseño de Espressif consiste en evitar cobre y trazas bajo la antena, y conservar una referencia GND adecuada para el resto del circuito \cite{espressif}. La posición real de la zona, el trazado y la vista tridimensional se presentan en las Figs.~\ref{fig:e2panel} y \ref{fig:e2panel}.
+
+
+
+
+
+\subsection{Validación y observaciones}
+En el ERC del ejercicio 2 se observan \textbf{cero errores} y \textbf{un aviso} (Fig.~\ref{fig:e2panel}), relativo a que la configuración abierta no incluye la biblioteca de símbolos denominada \texttt{MiLibreria}, utilizada por el símbolo personalizado \texttt{USB\_Custom}. Esta advertencia afecta la portabilidad del proyecto y se corrige incorporando o enlazando la biblioteca correspondiente. El DRC muestra \textbf{cero errores}, \textbf{dos avisos}, \textbf{cero elementos sin conectar} y \textbf{cero discrepancias con el esquemático} (Fig.~\ref{fig:e2panel}). Las capturas no permiten identificar con precisión el tipo de esos dos avisos; por ello no se clasifican arbitrariamente.
+
+
+
+
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.96\textwidth,height=0.35\textheight,keepaspectratio]{ej2_evidencias.png}
+\caption{Evidencias del ejercicio 2: PCB y zona de antena, representación 3D, ERC con un aviso de biblioteca y DRC con dos avisos.}
+\label{fig:e2panel}
+\end{figure*}
+
+\section{Ejercicio 3: tarjeta de desarrollo avanzada}
+\subsection{Integración de subsistemas}
+El tercer diseño incorporó en una sola tarjeta el microcontrolador ESP32-S3, el conector USB-C, la regulación de 3,3~V mediante AMS1117, el puente de comunicación USB--UART CP2102N, la protección ESD USBLC6-2SC6, botones de arranque y reinicio y un circuito de programación automática a partir de transistores BC817. Se dispusieron conectores laterales para exponer múltiples GPIO del microcontrolador. El esquemático completo se presenta en la Fig.~\ref{fig:e3esq} y el resumen funcional en la Tabla~\ref{tab:bloques}.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\textwidth,height=0.43\textheight,keepaspectratio]{ej3_06_esquematico.png}
+\caption{Esquemático final de la placa ESP32-S3 con USB-C, CP2102N, protección ESD, regulador, reinicio automático y conectores GPIO.}
+\label{fig:e3esq}
+\end{figure*}
+
+\begin{table}[H]
+\caption{Subsistemas incluidos en el tercer ejercicio}
+\label{tab:bloques}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{@{}p{0.27\columnwidth}X@{}}
+\toprule
+\textbf{Bloque} & \textbf{Función principal} \\
+\midrule
+ESP32-S3-WROOM-1 & Núcleo de procesamiento y periféricos GPIO. \\
+USB-C & Entrada de 5~V, datos D+/D$-$ y detección por resistencias CC. \\
+AMS1117-3.3 & Generación de alimentación de 3,3~V. \\
+CP2102N & Interfaz USB--UART para programación y diagnóstico. \\
+USBLC6-2SC6 & Protección ante descargas electrostáticas. \\
+BC817 y pasivos & Control de EN e IO0 mediante señales DTR/RTS. \\
+Conectores y pulsadores & Acceso a GPIO y control manual de arranque. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Alimentación, USB-C y programación}
+El puerto USB-C incluye resistencias independientes de aproximadamente 5,1~k$\Omega$ en las líneas CC1 y CC2, de acuerdo con la topología indicada en la guía. La protección ESD se dispuso entre el conector y el circuito de datos. El CP2102N transforma la comunicación USB en las señales UART del microcontrolador y proporciona señales de control DTR/RTS para el circuito de auto-reinicio y selección del modo de programación \cite{silabs}. Se añadieron condensadores de desacoplo próximos a los circuitos integrados para contribuir a la estabilidad de las líneas de alimentación.
+
+\subsection{PCB de dos capas y puesta a tierra}
+La distribución utilizó las capas \texttt{F.Cu} y \texttt{B.Cu}. La primera concentra componentes y gran parte de las señales; la segunda contiene rutas complementarias y una zona de cobre conectada a GND. Se creó una región de exclusión de la antena de 2,4~GHz en el borde del módulo. En la Fig.~\ref{fig:e3pcb} se comparan ambas caras. Si bien se observa continuidad visual amplia del relleno, las pistas que atraviesan \texttt{B.Cu} pueden interrumpir el retorno de corrientes de alta frecuencia: el DRC no constituye una evaluación electromagnética del plano de referencia \cite{espressif}.
+
+
+
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\textwidth,height=0.37\textheight,keepaspectratio]{ej3_evidencias_pcb.png}
+\caption{Evidencias físicas del ejercicio 3: capa superior, capa inferior y vistas tridimensionales del ensamblaje.}
+\label{fig:e3pcb}
+\end{figure*}
+
+\subsection{Verificación mecánica en 3D}
+Las vistas tridimensionales (Fig.~\ref{fig:e3pcb}) muestran la disposición del conector USB-C, dos pulsadores, elementos de potencia, módulo ESP32-S3 y conectores de pines montados hacia la cara inferior. Las imágenes permiten inspeccionar la orientación del conjunto; no sustituyen las comprobaciones dimensionales de ensamblaje ni de soldabilidad.
+
+
+
+\subsection{Resultados ERC y DRC}
+La última captura del ERC registra \textbf{cero infracciones} (Fig.~\ref{fig:e3control}); se observan cuatro pruebas ignoradas. La última comprobación DRC registra \textbf{cero errores}, \textbf{cero elementos sin conectar} y \textbf{cero diferencias entre PCB y esquemático}, con \textbf{33 avisos} (Fig.~\ref{fig:e3control}). Conforme a la revisión reportada por el equipo, estos avisos se relacionan con superposiciones de textos y gráficos de serigrafía; la imagen del resumen no aporta el detalle individual de los 33 avisos. Asimismo, se observan cinco pruebas ignoradas en el DRC. Por tanto, se demuestra conectividad según las reglas activas, pero no la ausencia absoluta de toda condición de manufactura no verificada.
+
+
+
+
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.96\textwidth,height=0.31\textheight,keepaspectratio]{ej3_evidencias_verificacion.png}
+\caption{Comprobaciones finales del ejercicio 3: ERC sin infracciones y DRC con cero errores, cero conexiones pendientes y 33 avisos.}
+\label{fig:e3control}
+\end{figure*}
+
+\subsection{Integridad de señal y limitaciones de USB}
+La guía establece como objetivo para las señales USB D+ y D$-$ una impedancia diferencial de 90~$\Omega$; las recomendaciones de Espressif especifican una tolerancia del diez por ciento \cite{guia,espressif}. Por lo tanto, el rango objetivo es
+\begin{equation}
+81\ \Omega \leq Z_{\rm diff}\leq 99\ \Omega.
+\end{equation}
+El cumplimiento de este requisito depende del ancho y espaciamiento de las pistas, del espesor y permitividad del dieléctrico, del espesor del cobre y de la continuidad del plano de referencia. Las capturas evidencian el trazado de las líneas, pero \textbf{no incluyen cálculo del apilado de fabricación, comprobación de impedancia ni medición de longitudes}. Por ello no se afirma que el par alcance 90~$\Omega$ ni que satisfaga una diferencia de longitud inferior a 0,5~mm, también solicitada por la guía.
+
+\section{Síntesis comparativa de resultados}
+La Tabla~\ref{tab:comparativa} resume los errores y avisos visibles en las capturas finales. Los avisos ERC del segundo ejercicio se comentan de forma separada.
+
+\begin{table}[H]
+\caption{Resumen cuantitativo de validaciones}
+\label{tab:comparativa}
+\centering
+\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{PCB} & \textbf{ERC} & \textbf{DRC} & \textbf{Avisos DRC} & \textbf{Abiertas}\\
+\midrule
+Linterna & 0 & 0 & 0 & 0\\
+ESP32 Mini & 0 & 0 & 2 & 0\\
+ESP32 USB-C & 0 & 0 & 33 & 0\\
+\bottomrule
+\end{tabular}\\[0.5ex]
+\parbox{0.97\columnwidth}{\scriptsize \emph{Nota:} ERC y DRC corresponden a cantidad de errores, no de avisos. El ESP32 Mini tiene además 1 aviso ERC de biblioteca. Se registraron pruebas ignoradas en las ventanas de revisión.}
+\end{table}
+
+En los tres casos se aportan capturas de los esquemáticos, enrutamientos y modelos 3D. Se incorpora evidencia de cotización de fabricación, pero no se presentan ensayos en hardware ni mediciones controladas de impedancia. La revisión documenta validación de diseño asistida por software y estimación comercial, no certificación funcional de los dispositivos.
+
+\section{Cotizaciones de fabricación PCB y ensamblaje PCBA}
+\subsection{Condiciones de la cotización}
+Se realizaron cotizaciones en JLCPCB para los tres ejercicios, con cinco unidades de cada PCB y parámetros mostrados en el carrito: placa verde de dos capas, material FR-4 con espesor 1,6~mm y acabado HASL con plomo. Las cifras corresponden a una captura proporcionada por el equipo, fechada el 27 de octubre de 2026. Los tiempos mostrados son estimaciones de la interfaz, y no representan fechas comprometidas de entrega. La Fig.~\ref{fig:cotizaciones} conserva la evidencia de los cuatro renglones de precio.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.98\columnwidth,keepaspectratio]{cotizacion_jlcpcb_tres_pcb_pcba.png}
+\caption{Captura del carrito de JLCPCB: cotización de fabricación de las tres PCB de cinco unidades cada una y servicio PCBA estándar SMT para el ejercicio 3. Precios originales en dólares estadounidenses.}
+\label{fig:cotizaciones}
+\end{figure}
+
+\begin{table}[!t]
+\caption{Precios cotizados por JLCPCB (USD)}
+\label{tab:precios}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{@{}Xrr@{}}
+\toprule
+\textbf{Concepto} & \textbf{Cantidad} & \textbf{USD}\\
+\midrule
+Ejercicio 1: linterna LED, PCB & 5 & 20,66\\
+Ejercicio 2: ESP32-S3 Mini, PCB & 5 & 4,00\\
+Ejercicio 3: ESP32-S3 USB-C, PCB & 5 & 4,00\\
+Ejercicio 3: PCBA estándar, SMT una cara & 5 & 123,36\\
+\midrule
+\textbf{Suma de renglones visibles} & & \textbf{152,02}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La suma de la Tabla~\ref{tab:precios} corresponde exclusivamente a las partidas visibles en la captura y no constituye una factura ni un costo total puesto en destino. No se verificó si impuestos, fletes, aranceles o posibles recargos están incluidos. El plazo indicado para los tres renglones de PCB es de dos días; el de PCBA es de tres a cuatro días. Se trata de duraciones de producción indicadas por el sitio y no de tiempos de entrega a Colombia.
+
+\subsection{Alcance de la cotización de ensamblaje}
+El servicio PCBA mostrado para el ejercicio 3 se identifica expresamente como \emph{Standard PCBA---SMT, Assemble top side}. Por lo tanto, la evidencia demuestra que se presupuestó ensamblaje superficial de una sola cara, \textbf{no que la totalidad de los elementos THT o los conectores inferiores estén incluidos}. Los conectores GPIO situados en la cara inferior y los pulsadores pasantes requieren verificar disponibilidad y modalidades adicionales de montaje antes de considerar la tarjeta ensamblada completamente. La cotización no equivale a un montaje realizado o probado.
+
+\section{Repositorio de archivos fuente}
+Los proyectos editables de los tres ejercicios se organizaron con los archivos de KiCad \texttt{.kicad\_pro}, \texttt{.kicad\_sch} y \texttt{.kicad\_pcb}; para el ejercicio 2 se conserva además la biblioteca personalizada. La dirección del repositorio destinada a la entrega es:
+\begin{center}
+\footnotesize\url{https://github.com/Alejandrotester/Laboratorio-dise-o-PCB}
+\end{center}
+Al cierre de este documento, la publicación de los archivos en la rama principal aún no se ha confirmado mediante el conector autorizado; por ello, la disponibilidad de los proyectos deberá verificarse en el repositorio antes de entregar el informe.
+
+\section{Discusión}
+El ejercicio 1 consolidó la relación entre el circuito eléctrico y la geometría de las pistas; el ejercicio 2 introdujo requisitos de alimentación, desacoplo y exclusión de antena; el ejercicio 3 exigió administrar una mayor densidad de componentes, vías y redes, así como coordinar señales de comunicación y lógica de programación automática.
+
+Las cotizaciones permitieron comparar el costo de fabricación de tres geometrías distintas e identificar el costo adicional del servicio de montaje SMT de la tarjeta avanzada. Sin embargo, los valores no permiten concluir el costo de un PCBA completamente montado con todos sus componentes THT y de ambas caras.
+
+La revisión ERC/DRC resultó útil para eliminar conexiones pendientes y errores geométricos detectables con las reglas configuradas. No obstante, la presencia de pruebas ignoradas, avisos de serigrafía y la ausencia de una verificación de impedancia recuerdan que un conteo de cero errores no garantiza por sí solo la conformidad con todas las condiciones de manufactura. En particular, antes de ordenar la PCB avanzada deben contrastarse las dimensiones de la huella USB-C, las capacidades del fabricante para perforaciones y separaciones, y los caminos de retorno bajo las líneas de datos.
+
+\section{Conclusiones}
+\begin{enumerate}
+\item Se completó la representación esquemática y la disposición física de tres diseños progresivos en KiCad, desde una linterna de cuatro elementos hasta una tarjeta ESP32-S3 con USB-C y puente UART.
+\item Las capturas finales presentan cero conexiones pendientes en los tres PCB, evidencia consistente con un enrutamiento eléctrico terminado según las reglas activadas en KiCad.
+\item El diseño de dos capas permitió organizar los sistemas ESP32-S3 con planos de tierra y zonas de exclusión de antena; el aumento de densidad en la tercera tarjeta hizo más compleja la preservación de un plano de referencia continuo.
+\item Las verificaciones de software reportaron cero errores de DRC en los tres ejercicios; permanecieron dos avisos DRC en el segundo y 33 en el tercero, además de la advertencia ERC de biblioteca en el segundo proyecto.
+\item Se registraron cotizaciones PCB de cinco unidades para cada ejercicio y una cotización PCBA SMT de una cara para el tercero. La suma de los cuatro renglones visibles fue de USD~152,02; este valor no representa necesariamente el importe final incluyendo transporte, impuestos o montaje THT.
+\item El cierre definitivo de manufactura requiere confirmar la integridad del par diferencial USB, revisar pruebas ignoradas y validar con el fabricante los requisitos de montaje y los archivos de fabricación. No se realizaron pruebas físicas en las evidencias analizadas.
+\end{enumerate}
+
+\section*{Agradecimientos}
+Los autores agradecen las orientaciones de la asignatura Diseño Electrónico CAD, que permitieron aplicar progresivamente la captura esquemática, las reglas de trazado y la verificación de placas de circuito impreso.
+
+\balance
+\begin{thebibliography}{00}
+\bibitem{guia} \emph{Electronics Design KiCAD PCB design Laboratory: Laboratory Guide---Progressive PCB Design with KiCad}, material de práctica suministrado para la asignatura Diseño Electrónico CAD, s.~f.
+\bibitem{kicad} KiCad, \emph{PCB Editor: Documentation, Version 10.0}. [En línea]. Disponible: \url{https://docs.kicad.org/10.0/en/pcbnew/pcbnew.html}. Consultado: oct. 2026.
+\bibitem{espressif} Espressif Systems, \emph{ESP32-S3 Hardware Design Guidelines: PCB Layout Design}. [En línea]. Disponible: \url{https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32s3/pcb-layout-design.html}. Consultado: oct. 2026.
+\bibitem{module} Espressif Systems, \emph{ESP32-S3-WROOM-1 and ESP32-S3-WROOM-1U Datasheet}. [En línea]. Disponible: \url{https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf}.
+\bibitem{jlcpcb} JLCPCB, \emph{PCB Manufacturing and PCB Assembly Quotation}, presupuesto comercial consultado el 27 de octubre de 2026. [En línea]. Disponible: \url{https://jlcpcb.com/}.
+\bibitem{silabs} Silicon Laboratories, \emph{CP2102N USBXpress USB-to-UART Bridge Datasheet}. [En línea]. Disponible: \url{https://www.silabs.com/documents/public/data-sheets/cp2102n-datasheet.pdf}.
+\end{thebibliography}
+\end{document}
