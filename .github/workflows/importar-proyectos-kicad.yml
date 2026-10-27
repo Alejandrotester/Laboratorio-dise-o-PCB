@@ -1,37 +1,49 @@
-name: Importar proyectos KiCad desde ZIP
+name: Publicar exclusivamente los tres proyectos KiCad
 on:
   push:
     branches: [main]
-    paths:
-      - 'Repositorio_KiCad_3_Ejercicios_Para_GitHub.zip'
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
-  importar:
+  importar-y-limpiar:
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar el repositorio
+      - name: Descargar repositorio
         uses: actions/checkout@v4
-      - name: Extraer archivos de los tres proyectos
+      - name: Comprobar y extraer fuentes KiCad
         shell: bash
         run: |
           set -euo pipefail
-          test -f Repositorio_KiCad_3_Ejercicios_Para_GitHub.zip
-          unzip -o Repositorio_KiCad_3_Ejercicios_Para_GitHub.zip -d .
-          test -f 'Ejercicio_1_Linterna/Ejercicio 1.kicad_pcb'
-          test -f 'Ejercicio_2_ESP32_S3_Mini/Ejercicio 2.kicad_pcb'
-          test -f 'Ejercicio_3_ESP32_S3_USB_C_PCBA/Laboratorio_3_ESP32S3.kicad_pcb'
-      - name: Publicar fuentes, informe y evidencias
+          ZIP='Laboratorio_KiCad_GitHub.zip'
+          test -s "$ZIP"
+          mkdir -p /tmp/kicad_solo
+          unzip -q "$ZIP" -d /tmp/kicad_solo
+          for f in \
+            'Ejercicio_1_Linterna/Ejercicio 1.kicad_pro' \
+            'Ejercicio_1_Linterna/Ejercicio 1.kicad_sch' \
+            'Ejercicio_1_Linterna/Ejercicio 1.kicad_pcb' \
+            'Ejercicio_2_ESP32_S3_Mini/Ejercicio 2.kicad_pro' \
+            'Ejercicio_2_ESP32_S3_Mini/Ejercicio 2.kicad_sch' \
+            'Ejercicio_2_ESP32_S3_Mini/Ejercicio 2.kicad_pcb' \
+            'Ejercicio_3_ESP32_S3_USB_C_PCBA/Laboratorio_3_ESP32S3.kicad_pro' \
+            'Ejercicio_3_ESP32_S3_USB_C_PCBA/Laboratorio_3_ESP32S3.kicad_sch' \
+            'Ejercicio_3_ESP32_S3_USB_C_PCBA/Laboratorio_3_ESP32S3.kicad_pcb'; do
+            test -s "/tmp/kicad_solo/$f"
+          done
+      - name: Reemplazar contenido con los tres proyectos editables
         shell: bash
         run: |
           set -euo pipefail
+          git rm -r -q --ignore-unmatch -- .
+          mkdir -p Ejercicio_1_Linterna Ejercicio_2_ESP32_S3_Mini Ejercicio_3_ESP32_S3_USB_C_PCBA
+          cp /tmp/kicad_solo/Ejercicio_1_Linterna/*.kicad_* Ejercicio_1_Linterna/
+          cp /tmp/kicad_solo/Ejercicio_2_ESP32_S3_Mini/*.kicad_* Ejercicio_2_ESP32_S3_Mini/
+          cp /tmp/kicad_solo/Ejercicio_2_ESP32_S3_Mini/*-lib-table Ejercicio_2_ESP32_S3_Mini/
+          cp -R /tmp/kicad_solo/Ejercicio_2_ESP32_S3_Mini/MiLibreria.pretty Ejercicio_2_ESP32_S3_Mini/
+          cp /tmp/kicad_solo/Ejercicio_3_ESP32_S3_USB_C_PCBA/*.kicad_* Ejercicio_3_ESP32_S3_USB_C_PCBA/
+          git add -A
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          if git diff --cached --quiet; then
-            echo 'No hay archivos nuevos.'
-          else
-            git commit -m 'feat: publicar los tres proyectos KiCad, informe IEEE y cotizaciones'
-            git push
-          fi
+          git diff --cached --quiet || git commit -m 'chore: mantener solo tres proyectos editables de KiCad'
+          git push origin HEAD:main
