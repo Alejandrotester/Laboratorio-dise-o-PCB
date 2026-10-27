@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "MiLibreria") (type "KiCad") (uri "${KIPRJMOD}/MiLibreria.kicad_sym") (options "") (descr "Biblioteca personalizada del ejercicio 2"))
+)
